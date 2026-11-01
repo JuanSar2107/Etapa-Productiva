@@ -7,6 +7,7 @@ import type {
   TablaImportacion,
   Empresa,
   EmpresaDatos,
+  EmpresasPorContactar,
   ListarEmpresasQuery,
   Paginado,
   PrevisualizacionCsv,
@@ -14,12 +15,16 @@ import type {
 } from '@ep/shared';
 import { api } from './client';
 
+function aParams(filtro: ListarEmpresasQuery) {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filtro)) if (v !== undefined && v !== '') params.set(k, String(v));
+  return params;
+}
+
 export const empresasApi = {
-  listar(filtro: ListarEmpresasQuery) {
-    const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(filtro)) if (v !== undefined && v !== '') params.set(k, String(v));
-    return api<Paginado<Empresa>>(`/empresas?${params}`);
-  },
+  listar: (filtro: ListarEmpresasQuery) => api<Paginado<Empresa>>(`/empresas?${aParams(filtro)}`),
+
+  porContactar: (filtro: ListarEmpresasQuery) => api<EmpresasPorContactar>(`/empresas/por-contactar?${aParams(filtro)}`),
 
   crear: (datos: EmpresaDatos) => api<Empresa>('/empresas', { method: 'POST', body: JSON.stringify(datos) }),
 

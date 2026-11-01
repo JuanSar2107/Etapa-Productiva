@@ -1,7 +1,9 @@
 import type { z } from 'zod';
 import {
   ESTADOS_CONTACTO,
+  MAX_EMPRESAS_POR_LOTE,
   type CambiarEstadoInput,
+  type EmpresasPorContactar,
   type listarEmpresasSchema,
   type PosponerSeguimientoInput,
   type Empresa,
@@ -75,6 +77,19 @@ export const empresasService = {
     };
     const { items, total } = await empresasRepository.listar(usuarioId, filtro);
     return { items: items.map((e) => aPublica(e, dias)), total, pagina: filtro.pagina, porPagina: filtro.porPagina };
+  },
+
+  /**
+   * Para «Escribir a todas las que coinciden»: solo las que nunca se han contactado. Las demás
+   * (ya enviadas, en cola, rechazadas, no contactar) se saltan para no escribirles de nuevo.
+   */
+  async porContactar(
+    usuarioId: string,
+    { seguimiento: _seguimiento, pagina: _pagina, porPagina: _porPagina, ...filtro }: z.output<typeof listarEmpresasSchema>,
+  ): Promise<EmpresasPorContactar> {
+    const dias = await diasSeguimiento(usuarioId);
+    const r = await empresasRepository.porContactar(usuarioId, filtro, MAX_EMPRESAS_POR_LOTE);
+    return { items: r.items.map((e) => aPublica(e, dias)), totalFiltro: r.totalFiltro, totalPorContactar: r.totalPorContactar };
   },
 
   async posponerSeguimiento(usuarioId: string, { empresaIds, dias }: PosponerSeguimientoInput, ahora = new Date()) {

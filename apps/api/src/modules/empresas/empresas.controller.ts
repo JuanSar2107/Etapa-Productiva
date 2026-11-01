@@ -13,6 +13,10 @@ export const empresasController = {
     res.json(await empresasService.listar(usuarioActual(req), listarEmpresasSchema.parse(req.query)));
   },
 
+  async porContactar(req: Request, res: Response) {
+    res.json(await empresasService.porContactar(usuarioActual(req), listarEmpresasSchema.parse(req.query)));
+  },
+
   async obtener(req: Request, res: Response) {
     res.json(await empresasService.obtener(usuarioActual(req), idParam(req)));
   },

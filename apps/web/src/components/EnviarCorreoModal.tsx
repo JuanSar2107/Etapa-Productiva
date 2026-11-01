@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { ETIQUETAS_ESTADO, type Empresa, type EstadoContacto } from '@ep/shared';
 import { usuariosApi } from '../api/usuarios';
@@ -17,11 +17,14 @@ const MAX_CORREOS_SUGERIDO = 2;
 export function EnviarCorreoModal({
   empresas,
   seguimiento = false,
+  nota,
   onCerrar,
 }: {
   empresas: Empresa[];
   /** Modo seguimiento: activa el reenvío y prefiere una plantilla cuyo nombre diga "seguimiento". */
   seguimiento?: boolean;
+  /** Aviso que se muestra arriba del formulario (por ejemplo, cuántas empresas se saltaron). */
+  nota?: ReactNode;
   onCerrar: (enviado: boolean) => void;
 }) {
   const { data: usuario } = useUsuario();
@@ -114,6 +117,7 @@ export function EnviarCorreoModal({
             </Alerta>
           ) : (
             <>
+              {nota && <Alerta tipo="info">{nota}</Alerta>}
               <div className="flex flex-col gap-1">
                 <label htmlFor="env-plantilla" className="text-sm font-medium text-slate-700">
                   Plantilla

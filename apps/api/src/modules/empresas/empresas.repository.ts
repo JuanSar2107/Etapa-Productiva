@@ -6,6 +6,7 @@ import { filtroSeguimientoPendiente } from './seguimiento';
 export interface FiltroEmpresas {
   q?: string;
   estado?: EstadoContacto;
+  departamento?: string;
   ciudad?: string;
   sector?: string;
   orden: OrdenEmpresas;
@@ -17,9 +18,9 @@ export interface FiltroEmpresas {
 
 function filtroWhere(
   usuarioId: string,
-  { q, estado, ciudad, sector, seguimientoPendiente }: Omit<FiltroEmpresas, 'orden' | 'pagina' | 'porPagina'>,
+  { q, estado, departamento, ciudad, sector, seguimientoPendiente }: Omit<FiltroEmpresas, 'orden' | 'pagina' | 'porPagina'>,
 ): Prisma.EmpresaWhereInput {
-  const contiene = (campo: 'nombre' | 'correoContacto' | 'ciudad' | 'sector' | 'nit') => ({
+  const contiene = (campo: 'nombre' | 'correoContacto' | 'ciudad' | 'departamento' | 'sector' | 'nit') => ({
     [campo]: { contains: q, mode: 'insensitive' as const },
   });
   // Se combinan con AND porque la búsqueda y el seguimiento usan cada uno su propio OR.
@@ -27,9 +28,12 @@ function filtroWhere(
     usuarioId,
     AND: [
       ...(estado ? [{ estado }] : []),
+      ...(departamento ? [{ departamento: { equals: departamento, mode: 'insensitive' as const } }] : []),
       ...(ciudad ? [{ ciudad: { equals: ciudad, mode: 'insensitive' as const } }] : []),
       ...(sector ? [{ sector: { equals: sector, mode: 'insensitive' as const } }] : []),
-      ...(q ? [{ OR: [contiene('nombre'), contiene('correoContacto'), contiene('ciudad'), contiene('sector'), contiene('nit')] }] : []),
+      ...(q
+        ? [{ OR: [contiene('nombre'), contiene('correoContacto'), contiene('ciudad'), contiene('departamento'), contiene('sector'), contiene('nit')] }]
+        : []),
       ...(seguimientoPendiente
         ? [filtroSeguimientoPendiente(seguimientoPendiente.diasSeguimiento, seguimientoPendiente.ahora)]
         : []),
@@ -103,16 +107,40 @@ export const empresasRepository = {
     return count;
   },
 
-  /** Ciudades y sectores que el usuario ya usó, para los filtros del panel. */
+  /** Departamentos, ciudades y sectores que el usuario ya usó, para los filtros del panel. */
   async opcionesFiltro(usuarioId: string) {
     const [ciudades, sectores] = await prisma.$transaction([
-      prisma.empresa.findMany({ where: { usuarioId, ciudad: { not: null } }, distinct: ['ciudad'], select: { ciudad: true }, orderBy: { ciudad: 'asc' } }),
+      prisma.empresa.findMany({
+        where: { usuarioId, ciudad: { not: null } },
+        distinct: ['ciudad', 'departamento'],
+        select: { ciudad: true, departamento: true },
+        orderBy: [{ ciudad: 'asc' }, { departamento: 'asc' }],
+      }),
       prisma.empresa.findMany({ where: { usuarioId, sector: { not: null } }, distinct: ['sector'], select: { sector: true }, orderBy: { sector: 'asc' } }),
     ]);
+    const departamentos = await prisma.empresa.findMany({
+      where: { usuarioId, departamento: { not: null } },
+      distinct: ['departamento'],
+      select: { departamento: true },
+      orderBy: { departamento: 'asc' },
+    });
     return {
-      ciudades: ciudades.flatMap((c) => (c.ciudad ? [c.ciudad] : [])),
+      departamentos: departamentos.flatMap((d) => (d.departamento ? [d.departamento] : [])),
+      ciudades: ciudades.flatMap((c) => (c.ciudad ? [{ ciudad: c.ciudad, departamento: c.departamento }] : [])),
       sectores: sectores.flatMap((s) => (s.sector ? [s.sector] : [])),
     };
+  },
+
+  /** Empresas del filtro que nunca se han contactado, hasta `limite`, y los totales. */
+  async porContactar(usuarioId: string, filtro: Omit<FiltroEmpresas, 'pagina' | 'porPagina'>, limite: number) {
+    const whereFiltro = filtroWhere(usuarioId, { ...filtro, estado: undefined });
+    const where = filtroWhere(usuarioId, { ...filtro, estado: 'SIN_CONTACTAR' });
+    const [items, totalPorContactar, totalFiltro] = await prisma.$transaction([
+      prisma.empresa.findMany({ where, include: conConteo, orderBy: ORDEN[filtro.orden], take: limite }),
+      prisma.empresa.count({ where }),
+      prisma.empresa.count({ where: whereFiltro }),
+    ]);
+    return { items, totalPorContactar, totalFiltro };
   },
 
   crear: (usuarioId: string, datos: EmpresaDatos, fuente: FuenteEmpresa = 'MANUAL') =>

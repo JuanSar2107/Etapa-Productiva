@@ -5,12 +5,14 @@ import {
   ESTADOS_MANUALES,
   ETIQUETAS_ESTADO,
   ETIQUETAS_ORDEN,
+  MAX_EMPRESAS_POR_LOTE,
   ORDENES_EMPRESAS,
   type CambiarEstadoInput,
   type Empresa,
   type EstadoContacto,
   type OrdenEmpresas,
 } from '@ep/shared';
+import { empresasApi } from '../api/empresas';
 import { EnviarCorreoModal } from '../components/EnviarCorreoModal';
 import { COLORES_ESTADO } from '../components/EstadoEmpresa';
 import { HistorialEmpresa } from '../components/HistorialEmpresa';
@@ -31,27 +33,78 @@ const vencido = (e: Empresa) => !!e.proximoSeguimientoEn && new Date(e.proximoSe
 export function SeguimientoPage() {
   const [busqueda, setBusqueda] = useState('');
   const [estado, setEstado] = useState<EstadoContacto | ''>('');
+  const [departamento, setDepartamento] = useState('');
   const [ciudad, setCiudad] = useState('');
   const [sector, setSector] = useState('');
   const [orden, setOrden] = useState<OrdenEmpresas>('seguimiento');
   const [soloPendientes, setSoloPendientes] = useState(false);
   const [pagina, setPagina] = useState(1);
   const q = useDebounce(busqueda);
-  useEffect(() => setPagina(1), [q, estado, ciudad, sector, orden, soloPendientes]);
+  useEffect(() => setPagina(1), [q, estado, departamento, ciudad, sector, orden, soloPendientes]);
 
   const { data: usuario } = useUsuario();
   const { data: resumen } = useResumenEstados();
   const { data: opciones } = useOpcionesFiltro();
-  const { data, isLoading, isFetching, error } = useEmpresas({
+  const filtroZona = {
     q,
-    estado: estado || undefined,
+    departamento: departamento || undefined,
     ciudad: ciudad || undefined,
     sector: sector || undefined,
     orden,
+  };
+  const { data, isLoading, isFetching, error } = useEmpresas({
+    ...filtroZona,
+    estado: estado || undefined,
     seguimiento: soloPendientes ? 'pendiente' : undefined,
     pagina,
     porPagina: POR_PAGINA,
   });
+  // Al elegir un departamento, solo se ofrecen sus ciudades.
+  const ciudades = [
+    ...new Set(
+      (opciones?.ciudades ?? [])
+        .filter((c) => !departamento || c.departamento?.toLowerCase() === departamento.toLowerCase())
+        .map((c) => c.ciudad),
+    ),
+  ];
+  const cambiarDepartamento = (d: string) => {
+    setDepartamento(d);
+    if (d && !opciones?.ciudades.some((c) => c.ciudad === ciudad && c.departamento?.toLowerCase() === d.toLowerCase())) setCiudad('');
+  };
+
+  // «Escribir a todas las que coinciden»: trae las del filtro que nunca se han contactado.
+  const [escribirA, setEscribirA] = useState<{ empresas: Empresa[]; nota?: string } | null>(null);
+  const [buscandoTodas, setBuscandoTodas] = useState(false);
+  const [errorTodas, setErrorTodas] = useState<string | null>(null);
+  async function escribirATodas() {
+    setBuscandoTodas(true);
+    setErrorTodas(null);
+    try {
+      const r = await empresasApi.porContactar(filtroZona);
+      if (r.items.length === 0) {
+        setErrorTodas(
+          r.totalFiltro === 0
+            ? 'No hay empresas con estos filtros.'
+            : `Ya contactaste (o no puedes contactar) a las ${r.totalFiltro} empresas de este filtro. Para volver a escribirles usa «Enviar seguimiento».`,
+        );
+        return;
+      }
+      const saltadas = r.totalFiltro - r.totalPorContactar;
+      const nota = [
+        `Se escribirá a ${r.items.length === 1 ? 'la empresa' : `las ${r.items.length} empresas`} de este filtro que aún no has contactado.`,
+        saltadas > 0 && `Se saltan ${saltadas} que ya contactaste, están en cola, respondieron, rechazaron o pidieron no ser contactadas.`,
+        r.totalPorContactar > r.items.length &&
+          `Por lote se programan máximo ${MAX_EMPRESAS_POR_LOTE}; cuando termines, vuelve a pulsar el botón para las ${r.totalPorContactar - r.items.length} restantes.`,
+      ]
+        .filter(Boolean)
+        .join(' ');
+      setEscribirA({ empresas: r.items, nota });
+    } catch (err) {
+      setErrorTodas((err as Error).message);
+    } finally {
+      setBuscandoTodas(false);
+    }
+  }
   const diasSeguimiento = usuario?.diasSeguimiento ?? 7;
 
   const [seleccion, setSeleccion] = useState<Map<string, Empresa>>(new Map());
@@ -151,7 +204,7 @@ export function SeguimientoPage() {
         </div>
       )}
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <input
           type="search"
           placeholder="Buscar empresa, correo, NIT…"
@@ -159,9 +212,15 @@ export function SeguimientoPage() {
           onChange={(e) => setBusqueda(e.target.value)}
           className={claseSelect}
         />
+        <select aria-label="Departamento" value={departamento} onChange={(e) => cambiarDepartamento(e.target.value)} className={claseSelect}>
+          <option value="">Todos los departamentos</option>
+          {opciones?.departamentos.map((d) => (
+            <option key={d}>{d}</option>
+          ))}
+        </select>
         <select aria-label="Ciudad" value={ciudad} onChange={(e) => setCiudad(e.target.value)} className={claseSelect}>
           <option value="">Todas las ciudades</option>
-          {opciones?.ciudades.map((c) => (
+          {ciudades.map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>
@@ -180,9 +239,31 @@ export function SeguimientoPage() {
         </select>
       </div>
 
+      {!!resumen?.SIN_CONTACTAR && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-slate-200">
+          <p className="text-slate-600">
+            {departamento || ciudad || sector || q
+              ? 'Escríbeles a todas las empresas de este filtro que aún no has contactado.'
+              : 'Escríbeles a todas las empresas que aún no has contactado, o filtra primero por departamento o ciudad.'}
+          </p>
+          <Boton onClick={escribirATodas} cargando={buscandoTodas}>
+            {departamento || ciudad ? `Escribir a las de ${ciudad || departamento}` : 'Escribir a todas'}
+          </Boton>
+        </div>
+      )}
+      {errorTodas && <Alerta tipo="aviso">{errorTodas}</Alerta>}
+
       {seleccion.size > 0 && (
         <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg">
           <span className="mr-auto">{seleccion.size} seleccionadas</span>
+          {[...seleccion.values()].some((e) => e.estado === 'SIN_CONTACTAR') && (
+            <button
+              onClick={() => setEscribirA({ empresas: [...seleccion.values()] })}
+              className="rounded-lg bg-white/10 px-3 py-1.5 hover:bg-white/20"
+            >
+              Escribir correo
+            </button>
+          )}
           {[...seleccion.values()].some((e) => e.estado === 'ENVIADO') && (
             <>
               <button
@@ -371,6 +452,17 @@ export function SeguimientoPage() {
       )}
 
       {historial && <HistorialEmpresa empresa={historial} onCerrar={() => setHistorial(null)} />}
+
+      {escribirA && (
+        <EnviarCorreoModal
+          empresas={escribirA.empresas}
+          nota={escribirA.nota}
+          onCerrar={(enviado) => {
+            setEscribirA(null);
+            if (enviado) setSeleccion(new Map());
+          }}
+        />
+      )}
 
       {seguimientoA && (
         <EnviarCorreoModal

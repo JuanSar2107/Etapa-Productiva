@@ -116,6 +116,7 @@ export const ETIQUETAS_ORDEN: Record<OrdenEmpresas, string> = {
 export const listarEmpresasSchema = z.object({
   q: z.string().trim().max(100).optional(),
   estado: z.enum(ESTADOS_CONTACTO).optional(),
+  departamento: z.string().trim().max(100).optional(),
   ciudad: z.string().trim().max(100).optional(),
   sector: z.string().trim().max(100).optional(),
   orden: z.enum(ORDENES_EMPRESAS).default('recientes'),

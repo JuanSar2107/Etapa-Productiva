@@ -20,6 +20,7 @@ empresasRoutes.post('/', validarBody(empresaSchema), empresasController.crear);
 
 empresasRoutes.get('/resumen-estados', empresasController.resumenEstados);
 empresasRoutes.get('/opciones-filtro', empresasController.opcionesFiltro);
+empresasRoutes.get('/por-contactar', empresasController.porContactar);
 empresasRoutes.post('/estado', validarBody(cambiarEstadoSchema), empresasController.cambiarEstado);
 empresasRoutes.post('/posponer-seguimiento', validarBody(posponerSeguimientoSchema), empresasController.posponerSeguimiento);
 

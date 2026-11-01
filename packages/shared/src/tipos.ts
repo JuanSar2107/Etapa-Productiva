@@ -41,8 +41,19 @@ export type ResumenEstados = Record<EstadoContacto, number> & {
 };
 
 export interface OpcionesFiltro {
-  ciudades: string[];
+  departamentos: string[];
+  /** Cada ciudad con su departamento, para acotar las ciudades al elegir un departamento. */
+  ciudades: { ciudad: string; departamento: string | null }[];
   sectores: string[];
+}
+
+/** Empresas de un filtro a las que se les puede escribir por primera vez. */
+export interface EmpresasPorContactar {
+  items: Empresa[];
+  /** Cuántas coinciden con el filtro sin contar el estado. */
+  totalFiltro: number;
+  /** Cuántas sin contactar hay en total (puede superar el máximo por lote). */
+  totalPorContactar: number;
 }
 
 export interface ResultadoCambioEstado {
