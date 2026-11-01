@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { cambiarEstadoSchema, confirmarImportacionSchema, empresaSchema, posponerSeguimientoSchema } from '@ep/shared';
+import {
+  cambiarEstadoSchema,
+  confirmarImportacionSchema,
+  empresaSchema,
+  posponerSeguimientoSchema,
+  tablaImportacionSchema,
+} from '@ep/shared';
 import { requireAuth } from '../../middlewares/auth';
 import { uploadCsv } from '../../middlewares/uploadCsv';
 import { validarBody } from '../../middlewares/validate';
@@ -18,6 +24,7 @@ empresasRoutes.post('/estado', validarBody(cambiarEstadoSchema), empresasControl
 empresasRoutes.post('/posponer-seguimiento', validarBody(posponerSeguimientoSchema), empresasController.posponerSeguimiento);
 
 empresasRoutes.post('/importar/previsualizar', uploadCsv, empresasController.previsualizarCsv);
+empresasRoutes.post('/importar/previsualizar-tabla', validarBody(tablaImportacionSchema), empresasController.previsualizarTabla);
 empresasRoutes.post('/importar', validarBody(confirmarImportacionSchema), empresasController.importar);
 
 empresasRoutes.get('/:id', empresasController.obtener);

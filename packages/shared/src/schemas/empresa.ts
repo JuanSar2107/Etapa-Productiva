@@ -107,6 +107,16 @@ export type ListarEmpresasQuery = z.input<typeof listarEmpresasSchema>;
 export const MAX_FILAS_CSV = 2000;
 export const MAX_BYTES_CSV = 1024 * 1024;
 
+/** Tabla leída de una página web (pegada o enviada por la extensión): encabezado + filas de celdas. */
+export const tablaImportacionSchema = z.object({
+  encabezado: z.array(z.string().max(200)).min(1).max(50),
+  filas: z
+    .array(z.array(z.string().max(2000)).max(50))
+    .min(1, 'La tabla no tiene filas')
+    .max(MAX_FILAS_CSV, `Máximo ${MAX_FILAS_CSV} filas`),
+});
+export type TablaImportacion = z.infer<typeof tablaImportacionSchema>;
+
 export const confirmarImportacionSchema = z.object({
   empresas: z.array(empresaSchema).min(1, 'No hay empresas para importar').max(MAX_FILAS_CSV),
 });

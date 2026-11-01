@@ -4,7 +4,7 @@ import { AppError } from '../../errors/AppError';
 import { usuarioActual } from '../../middlewares/auth';
 import { empresasRepository } from './empresas.repository';
 import { empresasService } from './empresas.service';
-import { analizarCsv } from './importarCsv.service';
+import { analizarCsv, analizarTabla } from './importarCsv.service';
 
 const idParam = (req: Request) => String(req.params.id);
 
@@ -51,6 +51,13 @@ export const empresasController = {
     if (!req.file) throw AppError.solicitudInvalida('Adjunta un archivo CSV en el campo "archivo"');
     const usuarioId = usuarioActual(req);
     res.json(analizarCsv(req.file.buffer, await empresasRepository.identificadores(usuarioId)));
+  },
+
+  /** Igual que previsualizarCsv, pero con una tabla ya separada en celdas (pegada o de la extensión). */
+  async previsualizarTabla(req: Request, res: Response) {
+    const usuarioId = usuarioActual(req);
+    const { encabezado, filas } = req.body;
+    res.json(analizarTabla(encabezado, filas, await empresasRepository.identificadores(usuarioId)));
   },
 
   /** Paso 2: guarda las filas válidas que el usuario confirmó (vuelven a validarse con Zod). */

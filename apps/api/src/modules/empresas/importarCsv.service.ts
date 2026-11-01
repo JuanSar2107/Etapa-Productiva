@@ -80,8 +80,24 @@ export function analizarCsv(buffer: Buffer, existentes: Existentes): Previsualiz
   if (!encabezado || datos.length === 0) {
     throw AppError.solicitudInvalida('El archivo está vacío o solo tiene el encabezado');
   }
+  return analizarTabla(encabezado, datos, existentes);
+}
+
+const limpiarCelda = (c: string | undefined) => (c ?? '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Analiza una tabla ya separada en celdas: sirve para el CSV, para una tabla pegada
+ * desde el navegador y para la que envía la extensión desde la página del SGVA.
+ */
+export function analizarTabla(encabezadoOriginal: string[], datosOriginales: string[][], existentes: Existentes): PrevisualizacionCsv {
+  // Las tablas de páginas web traen saltos de línea, espacios dobles y filas vacías.
+  const encabezado = encabezadoOriginal.map(limpiarCelda);
+  const datos = datosOriginales.map((f) => f.map(limpiarCelda)).filter((f) => f.some((c) => c !== ''));
+  if (datos.length === 0) {
+    throw AppError.solicitudInvalida('La tabla no tiene filas con datos');
+  }
   if (datos.length > MAX_FILAS_CSV) {
-    throw AppError.solicitudInvalida(`El archivo tiene ${datos.length} filas; el máximo es ${MAX_FILAS_CSV}`);
+    throw AppError.solicitudInvalida(`La tabla tiene ${datos.length} filas; el máximo es ${MAX_FILAS_CSV}`);
   }
 
   const columnas: Record<string, Campo> = {};
@@ -99,7 +115,7 @@ export function analizarCsv(buffer: Buffer, existentes: Existentes): Previsualiz
 
   if (indices.nombre === undefined || indices.correoContacto === undefined) {
     throw AppError.solicitudInvalida(
-      'El CSV debe tener al menos las columnas "nombre" y "correo". Columnas opcionales: nit, sector, ciudad, sitio_web, notas.',
+      'La tabla debe tener al menos las columnas "nombre" y "correo". Columnas opcionales: nit, sector, ciudad, sitio_web, notas.',
       { encabezado },
     );
   }
