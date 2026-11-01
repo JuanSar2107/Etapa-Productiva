@@ -241,7 +241,7 @@ export function SeguimientoPage() {
               <p className="mt-1">Agrega las empresas a las que quieres escribir; aquí verás en qué va cada una.</p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 <Link to="/empresas/importar" className="rounded-lg bg-white px-4 py-2 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
-                  Importar CSV
+                  Importar empresas
                 </Link>
                 <Link to="/empresas" className="rounded-lg bg-marca-600 px-4 py-2 font-medium text-white hover:bg-marca-700">
                   Agregar empresas

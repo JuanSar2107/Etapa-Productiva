@@ -13,13 +13,24 @@ type Campo = keyof EmpresaDatos;
 
 /** Nombres de columna aceptados (ya normalizados: minúsculas, sin tildes ni espacios). */
 const ALIAS: Record<Campo, string[]> = {
-  nombre: ['nombre', 'empresa', 'nombreempresa', 'nombredelaempresa', 'razonsocial'],
-  nit: ['nit', 'nitempresa'],
-  sector: ['sector', 'sectoreconomico', 'actividad', 'actividadeconomica'],
-  ciudad: ['ciudad', 'municipio'],
-  correoContacto: ['correo', 'email', 'mail', 'correoelectronico', 'correocontacto', 'correodecontacto', 'emailcontacto'],
+  nombre: ['nombre', 'empresa', 'nombreempresa', 'nombredelaempresa', 'razonsocial', 'nombrerazonsocial', 'nombrecomercial'],
+  nit: ['nit', 'nitempresa', 'nitdelaempresa', 'numerodeidentificacion', 'identificacion'],
+  sector: ['sector', 'sectoreconomico', 'actividad', 'actividadeconomica', 'sectorproductivo'],
+  ciudad: ['ciudad', 'municipio', 'ciudadmunicipio', 'lugar', 'ubicacion'],
+  correoContacto: [
+    'correo',
+    'email',
+    'mail',
+    'correoelectronico',
+    'correocontacto',
+    'correodecontacto',
+    'emailcontacto',
+    'correoempresa',
+    'emailempresa',
+    'correoelectronicocontacto',
+  ],
   sitioWeb: ['sitioweb', 'sitio', 'web', 'paginaweb', 'pagina', 'url'],
-  notas: ['notas', 'observaciones', 'comentarios'],
+  notas: ['notas', 'observaciones', 'comentarios', 'descripcion'],
 };
 
 const normalizarEncabezado = (h: string) =>
@@ -112,6 +123,21 @@ export function analizarTabla(encabezadoOriginal: string[], datosOriginales: str
       columnasIgnoradas.push(h);
     }
   });
+
+  // Si ninguna columna se llama "correo", usamos la que tenga correos en la mayoría de sus filas.
+  if (indices.correoContacto === undefined) {
+    const candidata = encabezado.findIndex((h, i) => {
+      if (Object.values(indices).includes(i)) return false;
+      const llenas = datos.map((f) => f[i] ?? '').filter(Boolean);
+      return llenas.length > 0 && llenas.filter((c) => /\S+@\S+\.\S+/.test(c)).length / llenas.length >= 0.5;
+    });
+    if (candidata !== -1) {
+      indices.correoContacto = candidata;
+      const posicion = columnasIgnoradas.indexOf(encabezado[candidata]!);
+      if (posicion !== -1) columnasIgnoradas.splice(posicion, 1);
+      columnas[encabezado[candidata] || `Columna ${candidata + 1}`] = 'correoContacto';
+    }
+  }
 
   if (indices.nombre === undefined || indices.correoContacto === undefined) {
     throw AppError.solicitudInvalida(

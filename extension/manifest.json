@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Etapa Productiva: guardar empresas",
+  "version": "0.1.0",
+  "description": "Lee la tabla de empresas de la página que tienes abierta (por ejemplo, el SGVA con tu propia sesión) y la lleva a la app Etapa Productiva para que la revises e importes.",
+  "action": {
+    "default_title": "Enviar empresas a Etapa Productiva",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://localhost:5173/*"],
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:5173/*"],
+      "js": ["puente.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

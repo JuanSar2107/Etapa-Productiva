@@ -4,6 +4,7 @@ import type {
   PosponerSeguimientoInput,
   ResultadoCambioEstado,
   ResumenEstados,
+  TablaImportacion,
   Empresa,
   EmpresaDatos,
   ListarEmpresasQuery,
@@ -42,6 +43,9 @@ export const empresasApi = {
     form.append('archivo', archivo);
     return api<PrevisualizacionCsv>('/empresas/importar/previsualizar', { method: 'POST', body: form });
   },
+
+  previsualizarTabla: (tabla: TablaImportacion) =>
+    api<PrevisualizacionCsv>('/empresas/importar/previsualizar-tabla', { method: 'POST', body: JSON.stringify(tabla) }),
 
   importar: (empresas: EmpresaDatos[]) =>
     api<ResultadoImportacion>('/empresas/importar', { method: 'POST', body: JSON.stringify({ empresas }) }),

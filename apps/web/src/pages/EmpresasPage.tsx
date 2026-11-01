@@ -51,7 +51,7 @@ export function EmpresasPage() {
         </h1>
         <div className="flex gap-2">
           <Link to="/empresas/importar" className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
-            Importar CSV
+            Importar empresas
           </Link>
           <Boton onClick={() => setEditando('nueva')}>Nueva empresa</Boton>
         </div>

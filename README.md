@@ -117,9 +117,19 @@ Abre <http://localhost:5173> y entra con una de las cuentas de prueba.
 | `npm run build` | Compila el backend (`apps/api/dist`) y el frontend (`apps/web/dist`) |
 | `npm run db:studio` | Abre Prisma Studio para ver la base de datos |
 
-## Importar empresas desde CSV
+## Importar empresas
 
-En **Empresas → Importar CSV** puedes descargar una plantilla. Reglas:
+En **Empresas → Importar empresas** hay tres formas de traerlas. Todas pasan por la misma vista previa y nada se guarda hasta que confirmas:
+
+- **Archivo CSV:** las reglas están abajo.
+- **Pegar una tabla:** selecciona la tabla en el SGVA, otra página o Excel, con los títulos de las columnas incluidos. Cópiala y pégala en la zona indicada.
+- **Extensión del navegador:** con tu sesión del SGVA abierta, un clic lleva la tabla de empresas a la app. La extensión no usa tus credenciales ni navega por ti. Instrucciones en [`extension/LEEME.md`](extension/LEEME.md).
+
+Si ninguna columna se llama «correo», la app usa la que tenga correos en la mayoría de sus filas.
+
+### Archivo CSV
+
+Puedes descargar una plantilla desde la misma página. Reglas:
 
 - **Columnas obligatorias:** `nombre` y `correo`. **Opcionales:** `nit`, `sector`, `ciudad`, `sitio_web` y `notas`. También se reconocen variantes como «Razón social», «Correo electrónico», «Municipio» o «Página web», sin importar tildes ni mayúsculas.
 - **Separador:** coma o punto y coma (el de Excel en español). Se detecta solo.

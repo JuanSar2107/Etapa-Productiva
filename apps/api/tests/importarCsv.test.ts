@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analizarCsv } from '../src/modules/empresas/importarCsv.service';
+import { analizarCsv, analizarTabla } from '../src/modules/empresas/importarCsv.service';
 
 const vacio = () => ({ correos: new Set<string>(), nits: new Set<string>() });
 const csv = (texto: string) => Buffer.from(texto, 'utf8');
@@ -60,6 +60,33 @@ describe('analizarCsv', () => {
   it('lee archivos guardados en Windows-1252', () => {
     const latin1 = Buffer.from('nombre;correo;ciudad\nCafé Ñandú;a@b.co;Medellín\n', 'latin1');
     expect(analizarCsv(latin1, vacio()).filas[0]!.empresa).toMatchObject({ nombre: 'Café Ñandú', ciudad: 'Medellín' });
+  });
+
+  it('limpia tablas copiadas de una página web (espacios, saltos de línea y filas vacías)', () => {
+    const r = analizarTabla(
+      ['  Razón social\n', 'Correo electrónico '],
+      [
+        ['  Acme\n  SAS ', ' rrhh@acme.co'],
+        ['', '  '],
+      ],
+      vacio(),
+    );
+    expect(r.resumen.total).toBe(1);
+    expect(r.filas[0]!.empresa).toMatchObject({ nombre: 'Acme SAS', correoContacto: 'rrhh@acme.co' });
+  });
+
+  it('reconoce la columna de correo por su contenido si el encabezado es desconocido', () => {
+    const r = analizarTabla(
+      ['Empresa', 'Datos de contacto', 'Cupos'],
+      [
+        ['Acme SAS', 'rrhh@acme.co', '2'],
+        ['Beta Ltda', 'talento@beta.co', '1'],
+      ],
+      vacio(),
+    );
+    expect(r.columnas).toEqual({ Empresa: 'nombre', 'Datos de contacto': 'correoContacto' });
+    expect(r.columnasIgnoradas).toEqual(['Cupos']);
+    expect(r.resumen.validas).toBe(2);
   });
 
   it('exige las columnas nombre y correo', () => {

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body { width: 360px; margin: 0; font: 13px/1.4 system-ui, sans-serif; color: #0f172a; }
+      header { background: #2e7d32; color: #fff; padding: 10px 14px; font-weight: 600; }
+      main { padding: 12px 14px; }
+      p { margin: 0 0 8px; }
+      .muted { color: #64748b; font-size: 12px; }
+      .error { color: #b91c1c; }
+      label.tabla { display: block; padding: 8px; margin-bottom: 6px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
+      label.tabla:has(input:checked) { border-color: #2e7d32; background: #ecfdf3; }
+      .columnas { display: block; color: #475569; font-size: 12px; margin-top: 2px; word-break: break-word; }
+      button { width: 100%; margin-top: 8px; padding: 9px; border: 0; border-radius: 8px; background: #2e7d32; color: #fff; font-weight: 600; cursor: pointer; }
+      button:disabled { background: #94a3b8; cursor: default; }
+    </style>
+  </head>
+  <body>
+    <header>Etapa Productiva</header>
+    <main>
+      <div id="estado"><p>Buscando tablas en esta página…</p></div>
+      <div id="tablas"></div>
+      <button id="enviar" hidden>Enviar a Etapa Productiva</button>
+      <p class="muted" style="margin-top: 10px">
+        Solo se lee lo que ves en esta pestaña. La extensión no guarda tu usuario ni tu contraseña y no navega por ti.
+      </p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
