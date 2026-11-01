@@ -106,6 +106,7 @@ export function EnviarCorreoModal({
         </div>
       ) : (
         <div className="space-y-4">
+          {nota && <Alerta tipo="info">{nota}</Alerta>}
           {requisitos.length > 0 ? (
             <Alerta tipo="aviso">
               <p className="font-medium">Antes de enviar:</p>
@@ -117,7 +118,6 @@ export function EnviarCorreoModal({
             </Alerta>
           ) : (
             <>
-              {nota && <Alerta tipo="info">{nota}</Alerta>}
               <div className="flex flex-col gap-1">
                 <label htmlFor="env-plantilla" className="text-sm font-medium text-slate-700">
                   Plantilla
