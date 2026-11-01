@@ -54,13 +54,38 @@ function datosDeTarjeta(tarjeta) {
 document.addEventListener(
   'click',
   (ev) => {
-    const boton = ev.target.closest?.('a, button, input[type=button], input[type=submit]');
-    if (!boton || !/ver\s*-\s*aplicar/i.test(boton.innerText || boton.value || '')) return;
+    // «Ver - Aplicar» puede ser un botón, un enlace o un div con onclick: subimos desde lo
+    // que se pulsó hasta el elemento cuyo texto es exactamente ese.
+    let boton = ev.target instanceof Element ? ev.target : null;
+    while (boton && boton !== document.body && !/^ver\s*-\s*aplicar$/i.test(limpiar(boton.innerText || boton.value))) {
+      boton = boton.parentElement;
+    }
+    if (!boton || boton === document.body) return;
     const tarjeta = buscarTarjeta(boton);
     ultimaTarjeta = tarjeta ? datosDeTarjeta(tarjeta) : null;
   },
   true,
 );
+
+/** Si no vimos el clic, buscamos la única tarjeta con la misma ciudad y fechas que el detalle. */
+function tarjetaPorDatos(d) {
+  const valor = (texto, etiqueta) => limpiar(new RegExp(`${etiqueta}\\s*:?\\s*([^\\n]*)`, 'i').exec(texto)?.[1]);
+  const candidatas = [...document.querySelectorAll('div, li, article, section, td')]
+    .filter((n) => esVisible(n) && !esDetalle(n) && (n.innerText.match(/Aprendices requeridos/gi) ?? []).length === 1)
+    // Nos quedamos con los contenedores más pequeños (la tarjeta, no la fila que la contiene).
+    .filter((n, _, todas) => !todas.some((otra) => otra !== n && n.contains(otra)))
+    .filter((n) => {
+      const t = datosDeTarjeta(n);
+      return (
+        mismoTexto(t.ciudad, d.Ciudad) &&
+        mismoTexto(valor(n.innerText, 'Fecha de cierre'), d['Fecha de cierre']) &&
+        mismoTexto(valor(n.innerText, 'Fecha de creación'), d['Fecha de creación']) &&
+        mismoTexto(valor(n.innerText, 'Aprendices requeridos'), d['Aprendices requeridos'])
+      );
+    });
+  const nombres = new Set(candidatas.map((n) => datosDeTarjeta(n).empresa));
+  return nombres.size === 1 ? [...nombres][0] : '';
+}
 
 // ---- 2. Leer el detalle de la solicitud ----
 
@@ -91,6 +116,7 @@ function leerDetalle(contenedor) {
 function armarSolicitud(contenedor) {
   const d = leerDetalle(contenedor);
   let empresa = ultimaTarjeta && mismoTexto(ultimaTarjeta.ciudad, d.Ciudad) ? ultimaTarjeta.empresa : '';
+  if (!empresa) empresa = tarjetaPorDatos(d);
   if (!empresa) {
     // No sabemos de qué tarjeta vino (por ejemplo, se abrió de otra forma): se lo preguntamos.
     empresa = limpiar(window.prompt('¿Cuál es el nombre de la empresa de esta solicitud?', ultimaTarjeta?.empresa ?? ''));
@@ -150,6 +176,7 @@ function crearBoton(contenedor) {
     padding: '6px 16px',
     margin: '0 4px',
     fontWeight: '600',
+    fontSize: '14px',
     cursor: 'pointer',
   });
   boton.addEventListener('click', (ev) => {

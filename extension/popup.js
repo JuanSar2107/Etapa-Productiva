@@ -113,7 +113,11 @@ async function iniciar() {
     return mostrarEstado('Abre la página con la lista de empresas (por ejemplo, en el SGVA) y vuelve a pulsar el ícono.', true);
   }
   if (pestana.url.startsWith(URL_APP)) {
-    return mostrarEstado('Esta es la app. Abre la página del SGVA con la lista de empresas y pulsa el ícono allí.', true);
+    return mostrarEstado(
+      'Aún no tienes solicitudes guardadas. En el SGVA abre «Ver - Aplicar» y pulsa «Guardar en Etapa Productiva»; ' +
+        'luego pulsa este ícono (en el SGVA o aquí) para enviarlas.',
+      true,
+    );
   }
 
   let tablas;
