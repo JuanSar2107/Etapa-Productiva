@@ -15,13 +15,22 @@ Lleva la lista de empresas que estás viendo en el SGVA (o en cualquier página 
 
 Si cambias algún archivo de esta carpeta, pulsa ↻ **Actualizar** en la tarjeta de la extensión.
 
-## Usarla
+## Usarla con el SGVA
 
-1. Arranca la app (`npm run db:local` y `npm run dev`) e inicia sesión en http://localhost:5173.
-2. En otra pestaña, entra al SGVA con tu usuario y abre la **lista** de empresas u ofertas.
-   - Si la lista tiene varias páginas, elige mostrar el máximo de filas por página.
-3. Pulsa el ícono de la extensión y elige la tabla (normalmente la más grande).
-4. Pulsa **Enviar a Etapa Productiva**. Se abre la página de importación con la vista previa; revisa y confirma.
+1. Arranca la app (`npm run db:local` y `npm run dev`) e inicia sesión en http://localhost:5173 **desde Chrome**.
+2. En otra pestaña, entra al SGVA con tu usuario y ve a **Buscar empresas**. Filtra por departamento o ciudad si quieres.
+3. En una tarjeta que te interese, pulsa **«Ver - Aplicar»**. En el detalle aparece el botón verde **«Guardar en Etapa Productiva»**, junto a «Cerrar».
+   - Púlsalo y verás «✓ Guardada (N en tu lista)».
+   - **No pulses «Aplicar»** a menos que de verdad quieras postularte en el SGVA.
+4. Cierra el detalle y repite con las demás solicitudes que quieras.
+5. Pulsa el ícono **E** de la extensión. Verás la lista de solicitudes guardadas.
+6. Pulsa **Enviar a Etapa Productiva**. Se abre la página de importación con la vista previa; revisa y confirma.
+
+Se guardan la empresa, el departamento, la ciudad, la persona de contacto, la dirección, el teléfono, el correo, el programa, los aprendices requeridos y la fecha de cierre. El perfil y las funciones quedan en las notas. Si una empresa tiene varias solicitudes con el mismo correo, se importa una sola vez.
+
+## Usarla en otras páginas (tablas)
+
+En una página que muestre una tabla de empresas, pulsa el ícono de la extensión, elige la tabla (normalmente la más grande) y pulsa **Enviar a Etapa Productiva**.
 
 ## Si no funciona
 

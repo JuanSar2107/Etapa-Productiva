@@ -47,7 +47,7 @@ describe('analizarCsv', () => {
     );
     expect(r.filas.map((f) => f.resultado)).toEqual(['valida', 'duplicada', 'duplicada']);
     expect(r.filas[0]!.avisos).toContain('Ya tienes otra empresa con este NIT');
-    expect(r.filas[1]!.errores).toEqual(['Correo repetido (fila 2)']);
+    expect(r.filas[1]!.errores[0]).toMatch(/Mismo correo que la fila 2/);
     expect(r.filas[2]!.errores).toEqual(['Ya tienes una empresa con este correo']);
   });
 
@@ -77,16 +77,52 @@ describe('analizarCsv', () => {
 
   it('reconoce la columna de correo por su contenido si el encabezado es desconocido', () => {
     const r = analizarTabla(
-      ['Empresa', 'Datos de contacto', 'Cupos'],
+      ['Empresa', 'Datos de contacto', 'Observación interna'],
       [
-        ['Acme SAS', 'rrhh@acme.co', '2'],
-        ['Beta Ltda', 'talento@beta.co', '1'],
+        ['Acme SAS', 'rrhh@acme.co', 'x'],
+        ['Beta Ltda', 'talento@beta.co', 'y'],
       ],
       vacio(),
     );
     expect(r.columnas).toEqual({ Empresa: 'nombre', 'Datos de contacto': 'correoContacto' });
-    expect(r.columnasIgnoradas).toEqual(['Cupos']);
+    expect(r.columnasIgnoradas).toEqual(['Observación interna']);
     expect(r.resumen.validas).toBe(2);
+  });
+
+  it('reconoce los datos de una solicitud del SGVA', () => {
+    const r = analizarTabla(
+      ['Empresa', 'Departamento', 'Ciudad', 'Persona de contacto', 'Dirección', 'Teléfono', 'Correo electrónico', 'Programa', 'Aprendices requeridos', 'Fecha de cierre', 'Notas'],
+      [
+        [
+          'VC@SOFT S A S',
+          'CORDOBA',
+          'PUERTO LIBERTADOR',
+          'Valeria Oyone',
+          'Cll 100 No. 17 A 36 Ofc 601',
+          '6219348',
+          'voyone@mail.vc-soft.com',
+          'TECNÓLOGO EN ANALISIS Y DESARROLLO DE SOFTWARE.',
+          '1',
+          '07/12/2026',
+          'Perfil: Excelencia académica',
+        ],
+      ],
+      vacio(),
+    );
+    expect(r.columnasIgnoradas).toEqual([]);
+    expect(r.filas[0]).toMatchObject({
+      resultado: 'valida',
+      empresa: {
+        nombre: 'VC@SOFT S A S',
+        departamento: 'CORDOBA',
+        ciudad: 'PUERTO LIBERTADOR',
+        contactoNombre: 'Valeria Oyone',
+        telefono: '6219348',
+        correoContacto: 'voyone@mail.vc-soft.com',
+        cupos: 1,
+        fechaCierre: '2026-12-07',
+      },
+    });
   });
 
   it('exige las columnas nombre y correo', () => {

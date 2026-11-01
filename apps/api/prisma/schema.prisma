@@ -70,23 +70,31 @@ model Usuario {
 }
 
 model Empresa {
-  id                String         @id @default(cuid())
-  usuarioId         String
-  nombre            String
-  nit               String?
-  sector            String?
-  ciudad            String?
-  correoContacto    String // se guarda en minúsculas y sin espacios
-  sitioWeb          String?
-  fuente            FuenteEmpresa  @default(MANUAL)
-  notas             String?        @db.Text
-  estado            EstadoContacto @default(SIN_CONTACTAR)
+  id                 String         @id @default(cuid())
+  usuarioId          String
+  nombre             String
+  nit                String?
+  sector             String?
+  ciudad             String?
+  correoContacto     String // se guarda en minúsculas y sin espacios
+  sitioWeb           String?
+  fuente             FuenteEmpresa  @default(MANUAL)
+  notas              String?        @db.Text
+  // Datos de la solicitud de aprendices (como los muestra el SGVA)
+  departamento       String?
+  direccion          String?
+  telefono           String?
+  contactoNombre     String?
+  programaSolicitado String?
+  cupos              Int?
+  fechaCierre        DateTime?      @db.Date
+  estado             EstadoContacto @default(SIN_CONTACTAR)
   /// Fecha del último correo enviado. El próximo seguimiento se calcula con los días configurados por el usuario.
-  ultimoContactoEn  DateTime?
+  ultimoContactoEn   DateTime?
   /// Si el aprendiz pospone el recordatorio, no se avisa antes de esta fecha.
-  recordatorioHasta DateTime?
-  creadoEn          DateTime       @default(now())
-  actualizadoEn     DateTime       @updatedAt
+  recordatorioHasta  DateTime?
+  creadoEn           DateTime       @default(now())
+  actualizadoEn      DateTime       @updatedAt
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   envios  Envio[]

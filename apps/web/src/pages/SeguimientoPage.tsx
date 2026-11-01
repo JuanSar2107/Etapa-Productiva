@@ -18,7 +18,7 @@ import { Alerta, Boton } from '../components/ui';
 import { useDebounce } from '../hooks/useDebounce';
 import { useCambiarEstado, useEmpresas, useOpcionesFiltro, usePosponerSeguimiento, useResumenEstados } from '../hooks/useEmpresas';
 import { useUsuario } from '../hooks/useUsuario';
-import { formatearFecha } from '../lib/fechas';
+import { diasHasta, formatearDia, formatearFecha } from '../lib/fechas';
 
 const POR_PAGINA = 25;
 type EstadoManual = CambiarEstadoInput['estado'];
@@ -281,6 +281,7 @@ export function SeguimientoPage() {
                       <td className="px-3 py-3">
                         <p className="font-medium">{e.nombre}</p>
                         <p className="text-xs text-slate-500">{[e.ciudad, e.sector].filter(Boolean).join(' · ') || e.correoContacto}</p>
+                        <DatosSolicitud empresa={e} />
                       </td>
                       <td className="px-3 py-3">
                         <SelectorEstado empresa={e} deshabilitado={cambiar.isPending} onCambiar={(nuevo) => aplicar([e.id], nuevo)} />
@@ -323,6 +324,7 @@ export function SeguimientoPage() {
                     <span>
                       <span className="font-medium">{e.nombre}</span>
                       <span className="block text-xs text-slate-500">{[e.ciudad, e.sector].filter(Boolean).join(' · ')}</span>
+                      <DatosSolicitud empresa={e} />
                     </span>
                   </label>
                   <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
@@ -428,6 +430,25 @@ function SelectorEstado({
         </option>
       ))}
     </select>
+  );
+}
+
+/** Cupos y fecha de cierre de la solicitud (cuando vienen del SGVA o se escribieron a mano). */
+function DatosSolicitud({ empresa }: { empresa: Empresa }) {
+  if (empresa.cupos == null && !empresa.fechaCierre) return null;
+  const dias = empresa.fechaCierre ? diasHasta(empresa.fechaCierre) : null;
+  const plazo = dias === null || dias < 0 || dias > 7 ? '' : dias === 0 ? ' (hoy)' : ` (en ${dias} ${dias === 1 ? 'día' : 'días'})`;
+  return (
+    <span className="mt-0.5 block text-xs text-slate-500">
+      {empresa.cupos != null && `${empresa.cupos} ${empresa.cupos === 1 ? 'aprendiz' : 'aprendices'}`}
+      {empresa.cupos != null && empresa.fechaCierre && ' · '}
+      {empresa.fechaCierre && dias !== null && (
+        <span className={dias < 0 ? 'text-slate-400 line-through' : dias <= 7 ? 'font-medium text-amber-700' : ''}>
+          {dias < 0 ? 'cerró' : 'cierra'} {formatearDia(empresa.fechaCierre)}
+          {plazo}
+        </span>
+      )}
+    </span>
   );
 }
 

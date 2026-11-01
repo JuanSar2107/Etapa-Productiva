@@ -30,7 +30,15 @@ const ALIAS: Record<Campo, string[]> = {
     'correoelectronicocontacto',
   ],
   sitioWeb: ['sitioweb', 'sitio', 'web', 'paginaweb', 'pagina', 'url'],
-  notas: ['notas', 'observaciones', 'comentarios', 'descripcion'],
+  notas: ['notas', 'observaciones', 'comentarios', 'descripcion', 'funcionesadesarrollar', 'funciones'],
+  // Campos de la solicitud de aprendices, con los títulos que usa el SGVA
+  departamento: ['departamento', 'depto'],
+  direccion: ['direccion', 'direcciondelaempresa'],
+  telefono: ['telefono', 'telefonos', 'celular', 'telefonodecontacto', 'telefonocontacto'],
+  contactoNombre: ['personadecontacto', 'contacto', 'nombredecontacto', 'nombrecontacto', 'responsable'],
+  programaSolicitado: ['programa', 'programasolicitado', 'programadeformacion', 'ocupacion', 'cargo', 'solicitud'],
+  cupos: ['aprendicesrequeridos', 'cupos', 'cupo', 'numerodeaprendices', 'vacantes'],
+  fechaCierre: ['fechadecierre', 'fechacierre', 'cierre', 'vigencia', 'fechalimite'],
 };
 
 const normalizarEncabezado = (h: string) =>
@@ -185,7 +193,13 @@ export function analizarTabla(encabezadoOriginal: string[], datosOriginales: str
         fila: numeroFila,
         resultado: 'duplicada',
         original,
-        errores: [filaPrevia ? `Correo repetido (fila ${filaPrevia})` : 'Ya tienes una empresa con este correo'],
+        // Una empresa con varias solicitudes (una por ciudad) suele tener el mismo contacto:
+        // se guarda una sola vez para no escribirle varias veces a la misma persona.
+        errores: [
+          filaPrevia
+            ? `Mismo correo que la fila ${filaPrevia}: se guarda una sola vez para no escribirle dos veces`
+            : 'Ya tienes una empresa con este correo',
+        ],
         avisos,
       };
     }

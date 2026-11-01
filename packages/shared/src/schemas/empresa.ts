@@ -52,14 +52,53 @@ const sitioWebSchema = z.preprocess(
     .optional(),
 );
 
+/** Número de aprendices que pide la empresa ("1", "2 aprendices"…). */
+const cuposSchema = z.preprocess(
+  (v) => {
+    const limpio = vacioANull(v);
+    if (typeof limpio !== 'string') return limpio;
+    const n = /\d+/.exec(limpio)?.[0];
+    return n === undefined ? limpio : Number(n);
+  },
+  z.number({ error: 'Los cupos deben ser un número' }).int().min(0).max(1000).nullable().optional(),
+);
+
+/** Acepta "07/12/2026" (como lo muestra el SGVA) o "2026-12-07"; se guarda como "2026-12-07". */
+const fechaSchema = z.preprocess(
+  (v) => {
+    const limpio = vacioANull(v);
+    if (typeof limpio !== 'string') return limpio;
+    const dmy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(limpio.trim());
+    return dmy ? `${dmy[3]}-${dmy[2]!.padStart(2, '0')}-${dmy[1]!.padStart(2, '0')}` : limpio.trim().slice(0, 10);
+  },
+  z.iso.date({ error: 'Fecha no válida (usa dd/mm/aaaa)' }).nullable().optional(),
+);
+
+const telefonoSchema = z.preprocess(
+  vacioANull,
+  z
+    .string()
+    .trim()
+    .regex(/^[\d\s+()\-–ext.]{5,40}$/i, 'Teléfono no válido')
+    .nullable()
+    .optional(),
+);
+
 export const empresaSchema = z.object({
   nombre: z.string({ error: 'El nombre es obligatorio' }).trim().min(2, 'El nombre es muy corto').max(150),
   nit: nitSchema,
   sector: textoOpcional(100),
+  departamento: textoOpcional(100),
   ciudad: textoOpcional(100),
+  direccion: textoOpcional(200),
   correoContacto: correoSchema,
+  contactoNombre: textoOpcional(150),
+  telefono: telefonoSchema,
   sitioWeb: sitioWebSchema,
-  notas: textoOpcional(2000),
+  programaSolicitado: textoOpcional(200),
+  cupos: cuposSchema,
+  fechaCierre: fechaSchema,
+  notas: textoOpcional(4000),
 });
 /** Datos de una empresa ya validados y normalizados. */
 export type EmpresaDatos = z.output<typeof empresaSchema>;

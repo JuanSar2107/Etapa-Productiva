@@ -49,7 +49,65 @@ async function leerTablasDeLaPestana(tabId) {
   return resultados.flatMap((r) => r.result ?? []).sort((a, b) => b.filas.length - a.filas.length);
 }
 
+// ---- Solicitudes guardadas desde el detalle del SGVA (ver sgva.js) ----
+
+const CLAVE_LISTA = 'solicitudesSgva';
+const COLUMNAS_SGVA = [
+  'Empresa',
+  'Departamento',
+  'Ciudad',
+  'Persona de contacto',
+  'Dirección',
+  'Teléfono',
+  'Correo electrónico',
+  'Programa',
+  'Aprendices requeridos',
+  'Fecha de cierre',
+  'Notas',
+];
+
+async function enviarTabla(tabla) {
+  await chrome.storage.local.set({ tablaPendiente: { tabla, creada: Date.now() } });
+  await chrome.tabs.create({ url: `${URL_APP}/empresas/importar` });
+  window.close();
+}
+
+function mostrarSolicitudesGuardadas(lista) {
+  mostrarEstado(
+    `Tienes <strong>${lista.length}</strong> ${lista.length === 1 ? 'solicitud guardada' : 'solicitudes guardadas'} del SGVA:`,
+  );
+  const ul = document.createElement('ul');
+  ul.style.cssText = 'margin: 0 0 8px; padding-left: 18px; max-height: 180px; overflow: auto;';
+  for (const s of lista) {
+    const li = document.createElement('li');
+    // Datos de la página: siempre como texto, nunca como HTML.
+    li.textContent = `${s.Empresa} — ${s.Ciudad || 'sin ciudad'}${s['Correo electrónico'] ? '' : ' (sin correo)'}`;
+    ul.appendChild(li);
+  }
+  $('tablas').replaceChildren(ul);
+
+  const boton = $('enviar');
+  boton.hidden = false;
+  boton.addEventListener('click', async () => {
+    boton.disabled = true;
+    await chrome.storage.local.remove(CLAVE_LISTA);
+    await enviarTabla({ encabezado: COLUMNAS_SGVA, filas: lista.map((s) => COLUMNAS_SGVA.map((c) => s[c] ?? '')) });
+  });
+
+  const vaciar = document.createElement('button');
+  vaciar.textContent = 'Vaciar lista';
+  vaciar.style.cssText = 'background: #fff; color: #334155; border: 1px solid #cbd5e1;';
+  vaciar.addEventListener('click', async () => {
+    await chrome.storage.local.remove(CLAVE_LISTA);
+    window.close();
+  });
+  boton.insertAdjacentElement('afterend', vaciar);
+}
+
 async function iniciar() {
+  const { [CLAVE_LISTA]: guardadas = [] } = await chrome.storage.local.get(CLAVE_LISTA);
+  if (guardadas.length > 0) return mostrarSolicitudesGuardadas(guardadas);
+
   const [pestana] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!pestana?.id || !/^https?:/.test(pestana.url ?? '')) {
     return mostrarEstado('Abre la página con la lista de empresas (por ejemplo, en el SGVA) y vuelve a pulsar el ícono.', true);
@@ -63,6 +121,15 @@ async function iniciar() {
     tablas = await leerTablasDeLaPestana(pestana.id);
   } catch (err) {
     return mostrarEstado(`No se pudo leer esta página: ${err.message}`, true);
+  }
+  if (tablas.length === 0 && new URL(pestana.url).hostname === 'caprendizaje.sena.edu.co') {
+    // Por si Chrome no cargó sgva.js solo (acceso al sitio restringido o pestaña abierta antes
+    // de instalar la extensión): al pulsar el ícono, activeTab nos deja activarlo en esta pestaña.
+    await chrome.scripting.executeScript({ target: { tabId: pestana.id, allFrames: true }, files: ['sgva.js'] }).catch(() => {});
+    return mostrarEstado(
+      'En el SGVA las empresas se muestran como tarjetas. Pulsa <strong>«Ver - Aplicar»</strong> en una solicitud y, en el ' +
+        'detalle, pulsa <strong>«Guardar en Etapa Productiva»</strong>. Repite con las que te interesen y vuelve aquí para enviarlas.',
+    );
   }
   if (tablas.length === 0) {
     return mostrarEstado(
@@ -97,11 +164,7 @@ async function iniciar() {
   boton.addEventListener('click', async () => {
     const elegida = tablas[Number(document.querySelector('input[name=tabla]:checked').value)];
     boton.disabled = true;
-    await chrome.storage.local.set({
-      tablaPendiente: { tabla: { encabezado: elegida.encabezado, filas: elegida.filas }, creada: Date.now() },
-    });
-    await chrome.tabs.create({ url: `${URL_APP}/empresas/importar` });
-    window.close();
+    await enviarTabla({ encabezado: elegida.encabezado, filas: elegida.filas });
   });
 }
 

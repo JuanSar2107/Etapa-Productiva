@@ -49,6 +49,12 @@ const ORDEN: Record<OrdenEmpresas, Prisma.EmpresaOrderByWithRelationInput[]> = {
 const conConteo = { _count: { select: { envios: { where: { estado: 'ENVIADO' } } } } } satisfies Prisma.EmpresaInclude;
 export type EmpresaConConteo = Prisma.EmpresaGetPayload<{ include: typeof conConteo }>;
 
+/** La fecha de cierre viaja como "2026-12-07"; en la base es una columna DATE. */
+const aDb = (d: EmpresaDatos) => ({
+  ...d,
+  fechaCierre: d.fechaCierre ? new Date(`${d.fechaCierre}T00:00:00Z`) : d.fechaCierre,
+});
+
 // Todas las consultas filtran por usuarioId: un aprendiz nunca ve ni modifica empresas de otro.
 export const empresasRepository = {
   async listar(usuarioId: string, filtro: FiltroEmpresas) {
@@ -110,17 +116,17 @@ export const empresasRepository = {
   },
 
   crear: (usuarioId: string, datos: EmpresaDatos, fuente: FuenteEmpresa = 'MANUAL') =>
-    prisma.empresa.create({ data: { ...datos, usuarioId, fuente }, include: conConteo }),
+    prisma.empresa.create({ data: { ...aDb(datos), usuarioId, fuente }, include: conConteo }),
 
   async crearVarias(usuarioId: string, empresas: EmpresaDatos[], fuente: FuenteEmpresa) {
     const { count } = await prisma.empresa.createMany({
-      data: empresas.map((e) => ({ ...e, usuarioId, fuente })),
+      data: empresas.map((e) => ({ ...aDb(e), usuarioId, fuente })),
       skipDuplicates: true, // respeta @@unique([usuarioId, correoContacto])
     });
     return count;
   },
 
-  actualizar: (id: string, datos: EmpresaDatos) => prisma.empresa.update({ where: { id }, data: datos, include: conConteo }),
+  actualizar: (id: string, datos: EmpresaDatos) => prisma.empresa.update({ where: { id }, data: aDb(datos), include: conConteo }),
 
   /**
    * Cambia el estado a mano. Los correos que seguían en cola se cancelan: si la empresa

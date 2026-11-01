@@ -1,9 +1,18 @@
 import { Link } from 'react-router';
 import { ETIQUETAS_ESTADO_ENVIO, type Empresa } from '@ep/shared';
 import { useEnvios } from '../hooks/useEnvios';
-import { formatearFecha } from '../lib/fechas';
+import { formatearDia, formatearFecha } from '../lib/fechas';
 import { EstadoEmpresa } from './EstadoEmpresa';
 import { Modal } from './ui';
+
+function Fila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  return (
+    <>
+      <dt className="text-slate-400">{etiqueta}</dt>
+      <dd className="break-words">{valor}</dd>
+    </>
+  );
+}
 
 export function HistorialEmpresa({ empresa, onCerrar }: { empresa: Empresa; onCerrar: () => void }) {
   const { data, isLoading } = useEnvios({ empresaId: empresa.id, porPagina: 50 });
@@ -17,12 +26,21 @@ export function HistorialEmpresa({ empresa, onCerrar }: { empresa: Empresa; onCe
         </div>
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-700">
-          {empresa.ciudad && (
-            <>
-              <dt className="text-slate-400">Ciudad</dt>
-              <dd>{empresa.ciudad}</dd>
-            </>
-          )}
+          {(
+            [
+              ['Programa', empresa.programaSolicitado],
+              ['Aprendices requeridos', empresa.cupos?.toString()],
+              ['Fecha de cierre', empresa.fechaCierre ? formatearDia(empresa.fechaCierre) : null],
+              ['Contacto', empresa.contactoNombre],
+              ['Teléfono', empresa.telefono],
+              ['Ciudad', [empresa.ciudad, empresa.departamento].filter(Boolean).join(', ')],
+              ['Dirección', empresa.direccion],
+            ] as [string, string | null | undefined][]
+          )
+            .filter(([, valor]) => valor)
+            .map(([etiqueta, valor]) => (
+              <Fila key={etiqueta} etiqueta={etiqueta} valor={valor!} />
+            ))}
           {empresa.sector && (
             <>
               <dt className="text-slate-400">Sector</dt>
