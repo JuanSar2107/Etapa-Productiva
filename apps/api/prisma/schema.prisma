@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FuenteEmpresa {
+  MANUAL
+  CSV
+  EXTENSION
+}
+
+/// Estado de la relación con la empresa (lo que se ve en el panel)
+enum EstadoContacto {
+  SIN_CONTACTAR
+  PENDIENTE // tiene un envío en cola
+  ENVIADO
+  RESPONDIO
+  RECHAZADO
+  NO_CONTACTAR
+}
+
+/// Estado técnico de cada correo
+enum EstadoEnvio {
+  PROGRAMADO
+  ENVIANDO
+  ENVIADO
+  ERROR
+  CANCELADO
+}
+
+model Usuario {
+  id                String  @id @default(cuid())
+  googleId          String  @unique
+  nombre            String
+  correo            String  @unique
+  programaFormacion String?
+  ficha             String?
+  telefono          String?
+
+  hojaVidaRuta   String? // ruta interna dentro de STORAGE_DIR, nunca una URL pública
+  hojaVidaNombre String?
+  hojaVidaBytes  Int?
+
+  // Tokens OAuth cifrados con AES-256-GCM (ver src/lib/crypto.ts)
+  accessTokenCifrado  String?
+  refreshTokenCifrado String?
+  tokenExpiraEn       DateTime?
+  scopes              String?
+  requiereReconexion  Boolean   @default(false) // se activa si Google devuelve invalid_grant
+
+  // Configuración de envío
+  limiteDiario    Int @default(15)
+  espaciadoMinSeg Int @default(120)
+  espaciadoMaxSeg Int @default(600)
+  diasSeguimiento Int @default(7)
+
+  // Ley 1581 de 2012: autorización de tratamiento de datos personales
+  autorizacionDatosEn DateTime?
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  empresas   Empresa[]
+  plantillas Plantilla[]
+  envios     Envio[]
+}
+
+model Empresa {
+  id                String         @id @default(cuid())
+  usuarioId         String
+  nombre            String
+  nit               String?
+  sector            String?
+  ciudad            String?
+  correoContacto    String // se guarda en minúsculas y sin espacios
+  sitioWeb          String?
+  fuente            FuenteEmpresa  @default(MANUAL)
+  notas             String?        @db.Text
+  estado            EstadoContacto @default(SIN_CONTACTAR)
+  /// Fecha del último correo enviado. El próximo seguimiento se calcula con los días configurados por el usuario.
+  ultimoContactoEn  DateTime?
+  /// Si el aprendiz pospone el recordatorio, no se avisa antes de esta fecha.
+  recordatorioHasta DateTime?
+  creadoEn          DateTime       @default(now())
+  actualizadoEn     DateTime       @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  envios  Envio[]
+
+  @@unique([usuarioId, correoContacto]) // detección de duplicados
+  @@index([usuarioId, estado])
+  @@index([usuarioId, ultimoContactoEn])
+}
+
+model Plantilla {
+  id                    String   @id @default(cuid())
+  usuarioId             String
+  nombre                String
+  asunto                String
+  cuerpo                String   @db.Text // admite {empresa} {nombre} {programa} {ficha} {telefono}
+  incluirLineaExclusion Boolean  @default(true)
+  creadoEn              DateTime @default(now())
+  actualizadoEn         DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  envios  Envio[]
+
+  @@unique([usuarioId, nombre])
+}
+
+model Envio {
+  id          String  @id @default(cuid())
+  usuarioId   String
+  empresaId   String
+  plantillaId String?
+
+  // Copia del correo tal como se envió o se enviará
+  destinatario String
+  asunto       String
+  cuerpo       String @db.Text
+
+  estado                  EstadoEnvio @default(PROGRAMADO)
+  fechaProgramada         DateTime
+  fechaEnvio              DateTime?
+  gmailMessageId          String?
+  gmailThreadId           String?
+  intentos                Int         @default(0)
+  ultimoError             String?
+  fechaProximoSeguimiento DateTime?
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  usuario   Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  empresa   Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  plantilla Plantilla? @relation(fields: [plantillaId], references: [id], onDelete: SetNull)
+
+  @@index([estado, fechaProgramada]) // lo usa el worker de la cola
+  @@index([usuarioId, fechaEnvio]) // conteo de envíos del día
+  @@index([empresaId])
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+coverage/
+
+# Hojas de vida subidas por los usuarios (datos personales)
+apps/api/storage/
+apps/api/.pgdata/

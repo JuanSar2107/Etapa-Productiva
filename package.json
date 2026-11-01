@@ -1,0 +1,34 @@
+{
+  "name": "etapa-productiva-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "App para que aprendices SENA contacten empresas para su etapa productiva",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @ep/api\" \"npm run dev -w @ep/web\"",
+    "build": "npm run build -w @ep/api && npm run build -w @ep/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "npm run db:migrate -w @ep/api",
+    "db:studio": "npm run db:studio -w @ep/api",
+    "db:local": "npm run db:local -w @ep/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "prisma@6.19.3": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.2": true
+  }
+}
